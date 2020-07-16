@@ -70,27 +70,28 @@ class ForumThreadCreateForm(forms.ModelForm):
         self.send_notifications_replies()
         self.send_notifications_references()
 
-    def send_notifications_references(self,):
-        for user in self.instance.referenced.all():
-            message = Notification.objects.create(
-                forumaccount=user.forumaccount,
-                message=f'{user.username}在贴子'
-                        f'{self.instance.title}中@了您。',
-                link=self.instance.get_absolute_url(),
-                read=False,
-            )
-
     def send_notifications_replies(self,):
         if self.cleaned_data['new']:
             return
         reply_to_thread = self.cleaned_data['reply_to']
         user = self.cleaned_data['user']
-        message = Notification.objects.create(
-            forumaccount=reply_to_thread.user.forumaccount,
-            message=f'{user.username}回复了您的贴子{reply_to_thread}。',
-            link=reply_to_thread.get_absolute_url(),
-            read=False,
-        )
+        if user.id != reply_to_thread.user.id:  # 不提示自己的回复
+            message = Notification.objects.create(
+                forumaccount=reply_to_thread.user.forumaccount,
+                message=f'{user.username}回复了您的贴子{reply_to_thread}。',
+                link=reply_to_thread.get_absolute_url(),
+                read=False,
+            )
+
+    def send_notifications_references(self,):
+        for user in self.instance.referenced.all():
+            message = Notification.objects.create(
+                forumaccount=user.forumaccount,
+                message=f'{self.instance.user.username}在贴子'
+                        f'{self.instance}中@了您。',
+                link=self.instance.get_absolute_url(),
+                read=False,
+            )
 
     def get_top(self,):
         ''' 也许save之后运行，找到一楼。'''

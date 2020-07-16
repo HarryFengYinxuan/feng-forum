@@ -11,7 +11,7 @@ from django.contrib.contenttypes.models import ContentType
 from feng_forum_main.models import Topic, ForumThread
 from feng_forum_user.models import ForumAccount
 
-from .view_helper import ViewInstantiationTestCase, ViewBaseTestCase, \
+from .view_helper import UserModifyTestCase, ViewBaseTestCase, \
                          OwnerOr404BaseTestCase, ForumThreadViewBaseTestCase
 
 User = get_user_model()
@@ -342,7 +342,7 @@ class ForumThreadReplyUpdateViewTestCase(OwnerOr404BaseTestCase, TestCase):
                 'can_view': '',}
 
 
-class ForumThreadInstantiationTestCase(ViewInstantiationTestCase, TestCase):
+class ForumThreadUserCreateTestCase(UserModifyTestCase, TestCase):
     view_name = 'forumthread-create'
 
     @classmethod
@@ -389,6 +389,7 @@ class ForumThreadInstantiationTestCase(ViewInstantiationTestCase, TestCase):
                 'can_view': '',}
 
     def check_created(self,):
+        # 帖子创建成功测试
         obj = ForumThread.objects.get(title='0123456789abcde')
         self.assertEqual(obj.title, '0123456789abcde')
         self.assertEqual(obj.content, 'content1@user3 @user2')
@@ -400,4 +401,271 @@ class ForumThreadInstantiationTestCase(ViewInstantiationTestCase, TestCase):
         self.assertEqual(obj.top_level, None)
         self.assertEqual(obj.deleted, False)
         self.assertEqual(obj.priviledged, False)
+        # 消息发送
+        self.assertEqual(self.account2.get_unread_message_count(), 1) 
+        self.assertEqual(self.account2.get_messages()[0].message, 
+                         f'{self.user1.username}在贴子0123456789abcde中@了您。')
+        self.assertEqual(self.account3.get_unread_message_count(), 1) 
+        self.assertEqual(self.account3.get_messages()[0].message, 
+                         f'{self.user1.username}在贴子0123456789abcde中@了您。')
+
+    def test_priviledged(self,):
+        '''高访问级别贴子创建'''
+        view_name = self.view_name
+        kwargs = self.get_kwargs()
+
+        self.client.login(username='user1', password='pass1')
+        response = self.client.post(reverse(view_name, kwargs=kwargs), {
+            'title': '0123456789abcde',
+            'content': 'content1',
+
+            'new':'on',
+            'topic': str(self.topic1.id),
+            'user': str(self.user1.id),
+            'post_datetime': self.now.strftime('%Y-%m-%d %H:%M:%S'),
+            # 'reply_to': None,
+            # 'top_level': None,
+            'deleted': False,
+
+            'priviledged': 'on',
+            'can_view': '@user2',})
+        self.assertEqual(response.status_code, 302)  # 成功跳转
+        self.assertFalse(response.url.startswith('/accounts/login/'))
+        # 基本信息
+        obj = ForumThread.objects.get(title='0123456789abcde')
+        self.assertEqual(obj.title, '0123456789abcde')
+        self.assertEqual(obj.content, 'content1')
+        self.assertEqual(obj.new, True)
+        self.assertEqual(obj.post_datetime, self.now)
+        self.assertEqual(len(obj.referenced.all()), 0)
+        self.assertEqual(obj.user, self.user1)
+        self.assertEqual(obj.reply_to, None)
+        self.assertEqual(obj.top_level, None)
+        self.assertEqual(obj.deleted, False)
+        self.assertEqual(obj.priviledged, True)
+        # 权限测试
+        self.assertTrue(self.user1.has_perm(obj.view_perm_codename()))
+        self.assertTrue(self.user2.has_perm(obj.view_perm_codename()))
+        self.assertFalse(self.user3.has_perm(obj.view_perm_codename()))
+
+
+class ForumThreadUserUpdateTestCase(UserModifyTestCase, TestCase):
+    view_name = 'forumthread-update'
+
+    @classmethod
+    def setUpTestData(cls,):
+        super().setUpTestData()
+
+        cls.user2 = User.objects.create_user(username='user2', 
+                                             password='pass2')
+        cls.user2.save()
+        cls.user3 = User.objects.create_user(username='user3', 
+                                             password='pass3')
+        cls.user3.save()
+
+        cls.account1 = ForumAccount.objects.create(user=cls.user1)
+        cls.account1.save()
+        cls.account2 = ForumAccount.objects.create(user=cls.user2)
+        cls.account2.save()
+        cls.account3 = ForumAccount.objects.create(user=cls.user3)
+        cls.account3.save()
+
+        cls.topic1 = Topic.objects.create(title='topic1')
+        cls.topic1.save()
+
+        cls.now = timezone.now().replace(microsecond=0)
+
+        cls.thread1 = ForumThread.objects.create(
+            title='thread1',
+            content='content1',
+            user=cls.user1,
+            topic=cls.topic1,
+            deleted=False,
+            new=True,)
+        cls.thread1.save()
+
+    def get_kwargs(self,):
+        kwargs = super().get_kwargs()
+        kwargs['topic_pk'] = str(self.topic1.id)
+        kwargs['pk'] = str(self.thread1.id)
+        return kwargs
+
+    def get_post_data(self,):
+        return {'title': '0123456789abcde',
+                'content': 'content1@user3 @user2',
+
+                'new':'on',
+                'topic': str(self.topic1.id),
+                'user': str(self.user1.id),
+                'post_datetime': self.now.strftime('%Y-%m-%d %H:%M:%S'),
+                # 'reply_to': None,
+                # 'top_level': None,
+                'deleted': False,
+
+                # 'priviledged': False,
+                'can_view': '',}
+
+    def check_created(self,):
+        # 帖子创建成功测试
+        obj = ForumThread.objects.get(title='0123456789abcde')
+        self.assertEqual(obj.title, '0123456789abcde')
+        self.assertEqual(obj.content, 'content1@user3 @user2')
+        self.assertEqual(obj.new, True)
+        self.assertEqual(obj.post_datetime, self.now)
+        self.assertEqual(len(obj.referenced.all()), 2)
+        self.assertEqual(obj.user, self.user1)
+        self.assertEqual(obj.reply_to, None)
+        self.assertEqual(obj.top_level, None)
+        self.assertEqual(obj.deleted, False)
+        self.assertEqual(obj.priviledged, False)
+        # 消息发送
+        self.assertEqual(self.account2.get_unread_message_count(), 1) 
+        self.assertEqual(self.account2.get_messages()[0].message, 
+                         f'{self.user1.username}在贴子0123456789abcde中@了您。')
+        self.assertEqual(self.account3.get_unread_message_count(), 1) 
+        self.assertEqual(self.account3.get_messages()[0].message, 
+                         f'{self.user1.username}在贴子0123456789abcde中@了您。')
+
+    def test_priviledged(self,):
+        '''高访问级别贴子创建'''
+        view_name = self.view_name
+        kwargs = self.get_kwargs()
+
+        self.client.login(username='user1', password='pass1')
+        response = self.client.post(reverse(view_name, kwargs=kwargs), {
+            'title': '0123456789abcde',
+            'content': 'content1',
+
+            'new':'on',
+            'topic': str(self.topic1.id),
+            'user': str(self.user1.id),
+            'post_datetime': self.now.strftime('%Y-%m-%d %H:%M:%S'),
+            # 'reply_to': None,
+            # 'top_level': None,
+            'deleted': False,
+
+            'priviledged': 'on',
+            'can_view': '@user2',})
+        self.assertEqual(response.status_code, 302)  # 成功跳转
+        self.assertFalse(response.url.startswith('/accounts/login/'))
+        # 基本信息
+        obj = ForumThread.objects.get(title='0123456789abcde')
+        self.assertEqual(obj.title, '0123456789abcde')
+        self.assertEqual(obj.content, 'content1')
+        self.assertEqual(obj.new, True)
+        self.assertEqual(obj.post_datetime, self.now)
+        self.assertEqual(len(obj.referenced.all()), 0)
+        self.assertEqual(obj.user, self.user1)
+        self.assertEqual(obj.reply_to, None)
+        self.assertEqual(obj.top_level, None)
+        self.assertEqual(obj.deleted, False)
+        self.assertEqual(obj.priviledged, True)
+        # 权限测试
+        self.assertTrue(self.user1.has_perm(obj.view_perm_codename()))
+        self.assertTrue(self.user2.has_perm(obj.view_perm_codename()))
+        self.assertFalse(self.user3.has_perm(obj.view_perm_codename()))
+        # 权限重置测试
+        response = self.client.post(reverse(view_name, kwargs=kwargs), {
+            'title': '0123456789abcde',
+            'content': 'content1',
+
+            'new':'on',
+            'topic': str(self.topic1.id),
+            'user': str(self.user1.id),
+            'post_datetime': self.now.strftime('%Y-%m-%d %H:%M:%S'),
+            # 'reply_to': None,
+            # 'top_level': None,
+            'deleted': False,
+
+            'priviledged': 'on',
+            'can_view': '@user3',})
+        self.assertEqual(response.status_code, 302)  # 成功跳转
+        self.assertFalse(response.url.startswith('/accounts/login/'))
+        self.user1 = User.objects.get(username='user1')  # 刷新
+        self.user2 = User.objects.get(username='user2')
+        self.user3 = User.objects.get(username='user3')
+        self.assertTrue(self.user1.has_perm(obj.view_perm_codename()))
+        self.assertTrue(self.user3.has_perm(obj.view_perm_codename()))
+        self.assertFalse(self.user2.has_perm(obj.view_perm_codename()))
+
+
+class ForumThreadReplyUserCreateTestCase(UserModifyTestCase, TestCase):
+    view_name = 'forumthread-reply-create'
+
+    @classmethod
+    def setUpTestData(cls,):
+        super().setUpTestData()
+
+        cls.user2 = User.objects.create_user(username='user2', 
+                                             password='pass2')
+        cls.user2.save()
+        cls.user3 = User.objects.create_user(username='user3', 
+                                             password='pass3')
+        cls.user3.save()
+
+        cls.account1 = ForumAccount.objects.create(user=cls.user1)
+        cls.account1.save()
+        cls.account2 = ForumAccount.objects.create(user=cls.user2)
+        cls.account2.save()
+        cls.account3 = ForumAccount.objects.create(user=cls.user3)
+        cls.account3.save()
+
+        cls.topic1 = Topic.objects.create(title='topic1')
+        cls.topic1.save()
+
+        cls.now = timezone.now().replace(microsecond=0)
+
+        cls.thread1 = ForumThread.objects.create(
+            title='thread1',
+            content='content1',
+            user=cls.user2,  # 注意
+            topic=cls.topic1,
+            deleted=False,
+            new=True,)
+        cls.thread1.save()
+
+    def get_kwargs(self,):
+        kwargs = super().get_kwargs()
+        kwargs['topic_pk'] = str(self.topic1.id)
+        kwargs['reply_pk'] = str(self.thread1.id)
+        return kwargs
+
+    def get_post_data(self,):
+        return {#'title': '0123456789abcde',
+                'content': 'content1@user3 @user2',
+
+                #'new':'on',
+                'topic': str(self.topic1.id),
+                'user': str(self.user1.id),
+                'post_datetime': self.now.strftime('%Y-%m-%d %H:%M:%S'),
+                'reply_to': str(self.thread1.id),
+                # 'top_level': None,
+                'deleted': False,
+
+                # 'priviledged': False,
+                'can_view': '',}
+
+    def check_created(self,):
+        # 帖子创建成功测试
+        obj = ForumThread.objects.get(content='content1@user3 @user2')
+        self.assertEqual(obj.title, '未命名')
+        self.assertEqual(obj.content, 'content1@user3 @user2')
+        self.assertEqual(obj.new, False)
+        self.assertEqual(obj.post_datetime, self.now)
+        self.assertEqual(len(obj.referenced.all()), 2)
+        self.assertEqual(obj.user, self.user1)
+        self.assertEqual(obj.reply_to, self.thread1)
+        self.assertEqual(obj.top_level, self.thread1)
+        self.assertEqual(obj.deleted, False)
+        self.assertEqual(obj.priviledged, False)
+        # 消息发送
+        self.assertEqual(self.account2.get_unread_message_count(), 2) 
+        self.assertEqual(self.account2.get_messages()[1].message,  # 先回复
+                         f'{self.user1.username}回复了您的贴子{self.thread1}。')
+        self.assertEqual(self.account2.get_messages()[0].message,  # 后@
+                         f'{self.user1.username}在贴子{obj}中@了您。')
+        self.assertEqual(self.account3.get_unread_message_count(), 1) 
+        self.assertEqual(self.account3.get_messages()[0].message, 
+                         f'{self.user1.username}在贴子{obj}中@了您。')
+
 

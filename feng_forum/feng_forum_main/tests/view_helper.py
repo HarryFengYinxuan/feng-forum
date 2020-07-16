@@ -317,7 +317,7 @@ class ForumThreadViewBaseTestCase(ViewBaseTestCase):
             self.assertEqual(response.status_code, 401)
 
 
-class ViewInstantiationTestCase:
+class UserModifyTestCase:
     view_name = ''
 
     @classmethod
