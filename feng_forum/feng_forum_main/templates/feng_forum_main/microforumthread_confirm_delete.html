@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<form method="post">{% csrf_token %}
+    <p>您确定要删除微贴"{{ micro_forum_thread }}"?</p>
+    <input type="submit" value="确认">
+</form>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h3>请选中已读信息</h3>
+<form action="." method="POST">
+    {% csrf_token %}
+    {{ formset.management_form }}
+    
+    {% for form in formset %}
+        {% for hidden in form.hidden_fields %}
+            {{ hidden }}
+        {% endfor %}
+        <div class="form-group form-check">
+            <input class="form-check-input" id="{{ form.read.id_for_label }}" 
+                name="{{ form.read.html_name }}" type="checkbox"
+                aria-describedby="{{ form.read.id_for_label }}"
+                {% if form.instance.read %} checked {% endif %}>
+            <label for="{{ form.instance.message }}">
+                {{ form.instance.message }}
+            </label>
+            {{ form.read.errors }}
+        </div>
+    {% endfor %}
+    <button type="submit" class="btn btn-primary">提交</button>
+    
+</form>
+{% endblock %}

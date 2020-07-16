@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<a href="{% url 'topic-list' %}">所有贴吧</a>
+<h1>{{ topic.title }}吧</h1>
+<a href="{% url 'topic-update' topic.id %}">更改</a>
+<a href="{% url 'topic-delete' topic.id %}">删除</a>
+<div class="row">
+    <div class="col col-lg-6">
+        <h2>贴子</h2>
+        <a href="{% url 'forumthread-create' topic.id %}">新建帖子</a>
+        {% if forumthread_page %}
+        <ul class="list-group">
+            {% for forumthread in forumthread_page %}
+                {% if forumthread.deleted %}
+                    {% if request.user.id == forumthread.user.id %}
+                    <li class="list-group-item">
+                    <a href="{% url 'forumthread-detail' topic.id forumthread.id %}">
+                        <span class="text-secondary">已删除</span>
+                    </a>
+                    </li>
+                    {% endif %}
+                {% elif forumthread.priviledged %}
+                    {% if forumthread.view_perm_codename in perms %}
+                    <li class="list-group-item">
+                    <a href="{% url 'forumthread-detail' topic.id forumthread.id %}">
+                        {{ forumthread.title }}<span class="badge badge-danger">高访问级别</span>
+                    </a>
+                    </li>
+                    {% endif %}
+                {% else %}
+                    <li class="list-group-item">
+                    <a href="{% url 'forumthread-detail' topic.id forumthread.id %}">
+                        {{ forumthread.title }}
+                    </a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+        {% endif %}
+
+
+        <div class="pagination">
+            <span class="step-links">
+                {% if forumthread_page.has_previous %}
+                    <a href="?forumthread_page_num=1">&laquo; first</a>
+                    <a href="?forumthread_page_num={{ forumthread_page.previous_page_number }}">previous</a>
+                {% endif %}
+
+                <span class="current">
+                    Page {{ forumthread_page.number }} of {{ forumthread_page.paginator.num_pages }}.
+                </span>
+
+                {% if forumthread_page.has_next %}
+                    <a href="?forumthread_page_num={{ forumthread_page.next_page_number }}">next</a>
+                    <a href="?forumthread_page_num={{ forumthread_page.paginator.num_pages }}">last &raquo;</a>
+                {% endif %}
+            </span>
+        </div>
+    </div>
+    <div class="col col-lg-6">
+        <h2>微贴</h2>
+        <a href="{% url 'microforumthread-create' %}">新建微帖</a>
+        {% if topic.get_microforumthreads %}
+        <ul class="list-group">
+            {% for microforumthread in topic.get_microforumthreads %}
+            <li class="list-group-item">
+                <a href="{% url 'microforumthread-detail' microforumthread.id %}">
+                    {{ microforumthread.get_brief_content }}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

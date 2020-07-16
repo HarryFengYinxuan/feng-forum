@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<a href="{% url 'topic-detail' forumthread.topic.id %}">
+    {{ forumthread.topic }}
+</a> 
+<h1>{{ forumthread.title }}</h1>
+{% comment %}
+<a href="{% url 'forumthread-delete' forumthread.id %}">删除</a>
+{% endcomment %}
+<ul class="list-group">
+    <!-- 1楼 -->
+    {% if replies_page.number == 1 %}
+    <li class="list-group-item">
+        <h5>{{ forumthread.user }}</h5>
+        <p>{{ forumthread.content }}</p>
+        <small class="text-muted">{{ forumthread.post_datetime }}</small>
+        <a href="{% url 'forumthread-reply-create' forumthread.topic.id forumthread.id %}">回复</a>
+        {% if forumthread.user.id == request.user.id %}
+        <a href="{% url 'forumthread-update' forumthread.topic.id forumthread.id %}">更改</a>
+        {% endif %}
+    </li>
+    {% endif %}
+    <!-- 回复 -->
+    {% for reply in replies_page %}
+    <li class="list-group-item">
+        {% if reply.deleted %}
+        <!-- <li class="list-group-item"> -->
+            <span class="text-secondary">已删除</span>
+            {% if reply.user.id == request.user.id %}
+            <a href="{% url 'forumthread-reply-update' reply.topic.id reply.reply_to.id reply.id %}">更改</a>
+            {% endif %}
+        <!-- </li> -->
+        {% else %}
+        <!-- <li class="list-group-item"> -->
+            <h5>{{ reply.user }}</h5>
+            <p>{{ reply.content }}</p>
+            <small class="text-muted">{{ reply.post_datetime }}</small>
+            <a href="{% url 'forumthread-reply-create' reply.topic.id reply.id %}">回复</a>
+            {% if reply.user.id == request.user.id %}
+            <a href="{% url 'forumthread-reply-update' reply.topic.id reply.reply_to.id reply.id %}">更改</a>
+            {% endif %}
+        <!-- </li> -->
+        {% endif %}
+    </li>
+    {% endfor %}
+</ul>
+
+<div class="pagination">
+    <span class="step-links">
+        {% if replies_page.has_previous %}
+            <a href="?page=1">&laquo; first</a>
+            <a href="?page={{ replies_page.previous_page_number }}">previous</a>
+        {% endif %}
+
+        <span class="current">
+            Page {{ replies_page.number }} of {{ replies_page.paginator.num_pages }}.
+        </span>
+
+        {% if replies_page.has_next %}
+            <a href="?page={{ replies_page.next_page_number }}">next</a>
+            <a href="?page={{ replies_page.paginator.num_pages }}">last &raquo;</a>
+        {% endif %}
+    </span>
+</div>
+{% endblock %}

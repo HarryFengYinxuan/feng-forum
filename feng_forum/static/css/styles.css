@@ -1,0 +1,13 @@
+/* 
+some general styles, especially for the base layout
+*/
+
+.navbar-icon {
+	width: 23px;
+	border-radius: 5px 5px 5px 5px;
+	outline: unset;
+}
+
+#navbarDropdown > img {
+	padding: 0px !important;
+}

@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<a href="{% url 'topic-list' %}">所有贴吧</a>
+<form action="." method="POST">
+    {% csrf_token %}
+    {{ form }}
+    <button type="submit">提交</button>
+</form>
+{% endblock %}

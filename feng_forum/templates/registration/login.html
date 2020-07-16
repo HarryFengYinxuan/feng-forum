@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+{% if form.errors %}
+<p>您的登录信息有误，请重新输入。</p>
+{% endif %}
+
+{% if next %}
+    {% if user.is_authenticated %}
+    <p>您的账号没有访问这个地址的权限，请切换账号。</p>
+    {% else %}
+    <p>请登录后继续访问。</p>
+    {% endif %}
+{% endif %}
+
+<form method="post" action="{% url 'login' %}">
+{% csrf_token %}
+<table>
+    <div class="form-group">
+        <label for="{{ form.username.id_for_label }}">
+            {{ form.username.label }}
+        </label>
+        <input class="form-control" id="{{ form.username.id_for_label }}" 
+               name="{{ form.username.html_name }}" required
+               aria-describedby="{{ form.username.id_for_label }}">
+        <small class="form-text text-muted">
+            {{ form.username.help_text|safe }}
+        </small>
+        {{ form.username.errors }}
+    </div>
+    <div class="form-group">
+        <label for="{{ form.password.id_for_label }}">
+            {{ form.password.label }}
+        </label>
+        <input class="form-control" id="{{ form.password.id_for_label }}" 
+               name="{{ form.password.html_name }}" required type="password"
+               aria-describedby="{{ form.password.id_for_label }}">
+        <small class="form-text text-muted">
+            {{ form.password.help_text|safe }}
+        </small>
+        {{ form.password.errors }}
+    </div>
+<!-- <tr>
+    <td>{{ form.username.label_tag }}</td>
+    <td>{{ form.username }}</td>
+</tr>
+<tr>
+    <td>{{ form.password.label_tag }}</td>
+    <td>{{ form.password }}</td>
+</tr> -->
+</table>
+
+<button type="submit" class="btn btn-primary">登录</button>
+<input type="hidden" name="next" value="{{ next }}">
+</form>
+
+{# Assumes you setup the password_reset view in your URLconf #}
+<p><a href="{% url 'password_reset' %}">重新设置密码</a></p>
+
+{% endblock %}

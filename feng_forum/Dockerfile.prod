@@ -1,0 +1,44 @@
+# pull official base image
+FROM python:3.8.0-alpine
+
+# create directory for the app user
+RUN mkdir -p /home/app
+
+# create the app user
+RUN addgroup -S app && adduser -S app -G app
+
+# create the appropriate directories
+ENV HOME=/home/app
+ENV APP_HOME=/home/app/web
+# RUN file="$(ls -1 /home/app/web)" && echo $file
+# RUN mkdir $APP_HOME
+# RUN mkdir $APP_HOME/staticfiles
+# RUN mkdir $APP_HOME/mediafiles
+WORKDIR $APP_HOME
+
+# set work directory
+# WORKDIR /usr/src/app
+
+# set environment variables
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+# install psycopg2 dependencies
+RUN apk update \
+    && apk add postgresql-dev gcc python3-dev musl-dev zlib-dev jpeg-dev
+
+# install dependencies
+RUN pip install --upgrade pip
+
+# copy project
+COPY . $APP_HOME
+# COPY ./requirements.txt /usr/src/app/requirements.txt
+RUN pip install --upgrade -r requirements.txt
+
+# chown all the files to the app user
+RUN chown -R app:app $APP_HOME
+
+# change to the app user
+USER app
+
+ENTRYPOINT ["/home/app/web/entrypoint.prod.sh"]

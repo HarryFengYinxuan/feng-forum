@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<a href="{% url 'topic-detail' microforumthread.topic.id %}">
+    {{ microforumthread.topic }}
+</a> 
+
+<h5>{{ microforumthread.user }}</h5>
+{{ microforumthread.content }}
+{% comment %}
+<a href="{% url 'microforumthread-update' microforumthread.id %}">更改</a>
+<a href="{% url 'microforumthread-delete' microforumthread.id %}">删除</a>
+{% endcomment %}
+<ul class="list-group">
+    {% for reply in microforumthread.get_replies %}
+    <li class="list-group-item">
+        <h5>{{ reply.user }}</h5>
+        {{ reply.content }}
+    </li>
+    {% endfor %}
+</ul>
+{% endblock %}

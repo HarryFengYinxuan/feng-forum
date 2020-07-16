@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<form action="" method="POST">
+    {% csrf_token %}
+    <!-- 新建贴子的需要处理的属性 -->
+    {% for field in form.hidden_fields %}
+        {{ field.errors }}
+    {% endfor %}
+    <input type="hidden" id="{{ form.new.id_for_label }}" 
+           {% if is_new %} value="on" {% endif %}
+           name="{{ form.new.html_name }}">
+    <input type="hidden" id="{{ form.post_datetime.id_for_label }}"
+           name="{{ form.post_datetime.html_name }}" 
+           value="{{ datetime_now }}">
+    <input type="hidden" id="{{ form.topic.id_for_label }}"
+           name="{{ form.topic.html_name }}" 
+           value="{{ topic }}">
+    <input type="hidden" id="{{ form.user.id_for_label }}"
+           name="{{ form.user.html_name }}" 
+           value="{{ request.user.id }}">
+    <input type="hidden" id="{{ form.reply_to.id_for_label }}" 
+           name="{{ form.reply_to.html_name }}" 
+           value="{{ reply_to_val }}">
+
+    {% if is_new %}
+    <div class="form-group">
+        <label for="{{ form.title.id_for_label }}">
+            {{ form.title.label }}
+        </label>
+        <input class="form-control" id="{{ form.title.id_for_label }}" 
+               name="{{ form.title.html_name }}" required
+               aria-describedby="{{ form.title.id_for_label }}"
+               value="{{ form.initial.title }}">
+        <small class="form-text text-muted">
+            {{ form.title.help_text|safe }}
+        </small>
+        {{ form.title.errors }}
+    </div>
+    {% else %}
+    <input  id="{{ form.title.id_for_label }}" 
+            name="{{ form.title.html_name }}"
+            value="{{ form.initial.title }}"
+            type="hidden">
+    {% endif %}
+    <div class="form-group">
+        <label for="{{ form.content.id_for_label }}">
+            {{ form.content.label }}
+        </label>
+        <textarea class="form-control" id="{{ form.content.id_for_label }}"
+                  aria-describedby="{{ form.content.id_for_label }}"
+                  name="{{ form.content.html_name }}" required
+                  rows="10">{{ form.initial.content }}</textarea>
+        <small class="form-text text-muted">
+            {{ form.content.help_text|safe }}
+        </small>
+        {{ form.content.errors }}
+    </div>
+    <div class="form-group form-check">
+        <input class="form-check-input" id="{{ form.deleted.id_for_label }}" 
+            name="{{ form.deleted.html_name }}" type="checkbox"
+            aria-describedby="{{ form.deleted.id_for_label }}"
+            {% if form.initial.deleted %} checked {% endif %}>
+        <label for="{{ form.deleted.id_for_label }}">
+            {{ form.deleted.label }}（已删除贴不会消失，会显示已删除且可以更改）
+        </label>
+        {{ form.deleted.errors }}
+    </div>
+    <!-- 高级别访问只有楼主才有。 -->
+    {% if is_new %}
+    <div class="form-group form-check">
+        <input class="form-check-input" id="{{ form.priviledged.id_for_label }}" 
+            name="{{ form.priviledged.html_name }}" type="checkbox"
+            aria-describedby="{{ form.priviledged.id_for_label }}"
+            {% if form.initial.priviledged %} checked {% endif %}>
+        <label for="{{ form.priviledged.id_for_label }}">
+            {{ form.priviledged.label }}
+        </label>
+        {{ form.priviledged.errors }}
+    </div>
+    <div class="form-group">
+        <label for="{{ form.can_view.id_for_label }}">
+            可访问名单请用@格式。（如未勾选“高访问级别”此输入无效）
+        </label>
+        <textarea class="form-control" id="{{ form.can_view.id_for_label }}"
+                  aria-describedby="{{ form.can_view.id_for_label }}"
+                  name="{{ form.can_view.html_name }}" 
+                  rows="10">{{ form.initial.can_view }}</textarea>
+        <small class="form-text text-muted">
+            {{ form.can_view.help_text|safe }}
+        </small>
+        {{ form.can_view.errors }}
+    </div>
+    {% endif %}
+    <button type="submit" class="btn btn-primary">提交</button>
+</form>
+{% endblock %}
